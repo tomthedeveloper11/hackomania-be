@@ -77,28 +77,38 @@ def search_grants(input_text, items):
 
     # Filter out specific keywords
     filtered_keywords = [
-        keyword for keyword in keywords if keyword.lower() not in words_to_filter_out
+        keyword.lower()
+        for keyword in keywords
+        if keyword.lower() not in words_to_filter_out
     ]
 
-    print(filtered_keywords)
+    filtered_items = []
+
+    # Check if filtered_keywords contains "LLE" or "SME"
+    if "lle" in filtered_keywords:
+        filtered_items.extend([item for item in items if "LLE" in item["stage"]])
+    if "sme" in filtered_keywords:
+        filtered_items.extend([item for item in items if "SME" in item["stage"]])
+    if "startups" in filtered_keywords:
+        filtered_items.extend([item for item in items if "Startups" in item["stage"]])
 
     matched_items = []
+    print(filtered_keywords)
+    print(filtered_items)
     for item in items:
-        # Check if any keyword matches in fullDescription
+        # Check if grant name contains any of the filtered keywords
         if any(
-            keyword.lower() in item["fullDescription"].lower()
-            for keyword in filtered_keywords
+            keyword.lower() in item["name"].lower() for keyword in filtered_keywords
         ):
             matched_items.append(item)
         else:
-            # Check if any keyword matches in eligibilities
-            if item["eligibility"]:
-                if any(
-                    keyword.lower() in elig.lower()
-                    for keyword in filtered_keywords
-                    for elig in item["eligibility"]
-                ):
-                    matched_items.append(item)
+            # Check if any keyword matches in fullDescription or eligibilities
+            if any(
+                keyword.lower() in item["fullDescription"].lower()
+                or any(keyword.lower() in elig.lower() for elig in item["eligibility"])
+                for keyword in filtered_keywords
+            ):
+                matched_items.append(item)
 
     return matched_items
 
@@ -117,12 +127,12 @@ def root():
     return grants_data
 
 
-@app.post("/search/")
+@app.post("/search")
 def getSearch(item: Item):
     return search_grants(item.text, grants_data)
 
 
-@app.post("/recommendations/")
+@app.post("/recommendations")
 def getRecommendations(profile: Profile):
     matching_grants = find_matching_grants(
         profile.stage,
